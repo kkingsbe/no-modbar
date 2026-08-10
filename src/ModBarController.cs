@@ -11,6 +11,7 @@ namespace NoModBar
         {
             _bar = new ModBarCanvas();
             _bar.Create();
+            Plugin.Log?.LogInfo($"ModBar: canvas created, {ModBarApi.Snapshot().Count} registration(s) already present");
         }
 
         private void Update()
@@ -24,7 +25,9 @@ namespace NoModBar
             if (ModBarApi.Version != _lastVersion)
             {
                 _lastVersion = ModBarApi.Version;
-                _bar.Rebuild(ModBarApi.Snapshot());
+                var entries = ModBarApi.Snapshot();
+                _bar.Rebuild(entries);
+                Plugin.Log?.LogInfo($"ModBar: rebuilt bar with {entries.Count} registration(s)");
             }
 
             if (inGame)

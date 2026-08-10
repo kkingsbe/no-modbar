@@ -28,6 +28,7 @@ namespace NoModBar
             }
             Instance = this;
             Log = Logger;
+            ModBarApi.Log = Logger;
 
             OffsetX = Config.Bind("Bar", "OffsetX", 12f,
                 new ConfigDescription("Horizontal offset of the bar from the top-left corner (screen px).",

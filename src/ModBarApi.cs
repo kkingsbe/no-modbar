@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using BepInEx.Logging;
 
 namespace NoModBar
 {
     public static class ModBarApi
     {
+        internal static ManualLogSource Log;
+
         private static readonly object Sync = new object();
         private static readonly Dictionary<string, ModBarEntry> Entries = new Dictionary<string, ModBarEntry>();
         private static int _version;
@@ -18,7 +21,11 @@ namespace NoModBar
             string tooltip = GetProp<string>(entry, "Tooltip");
             Func<bool> isVisible = GetProp<Func<bool>>(entry, "IsVisible");
             Action toggle = GetProp<Action>(entry, "Toggle");
-            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(name) || toggle == null) return false;
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(name) || toggle == null)
+            {
+                Log?.LogWarning($"ModBar: rejected registration id='{id}' name='{name}' toggle={(toggle != null)}");
+                return false;
+            }
 
             lock (Sync)
             {
@@ -32,6 +39,7 @@ namespace NoModBar
                 };
                 _version++;
             }
+            Log?.LogInfo($"ModBar: registered '{id}' ({name}), total {Count()}");
             return true;
         }
 
@@ -42,8 +50,14 @@ namespace NoModBar
             {
                 if (!Entries.Remove(id)) return false;
                 _version++;
-                return true;
             }
+            Log?.LogInfo($"ModBar: unregistered '{id}', total {Count()}");
+            return true;
+        }
+
+        private static int Count()
+        {
+            lock (Sync) return Entries.Count;
         }
 
         public static bool IsRegistered(string id)
