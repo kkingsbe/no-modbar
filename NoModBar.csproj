@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+    <AssemblyName>NoModBar</AssemblyName>
+    <RootNamespace>NoModBar</RootNamespace>
+    <Product>NO Mod Bar</Product>
+    <Version>1.0.0</Version>
+    <Deterministic>true</Deterministic>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <OutputPath>bin\$(Configuration)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(NuclearOptionRoot)\NuclearOption_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepInEx">
+      <HintPath>$(NuclearOptionRoot)\BepInEx\core\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="DeployToPlugins" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' And '$(NuclearOptionRoot)' != ''">
+    <Copy SourceFiles="$(OutputPath)NoModBar.dll" DestinationFolder="$(NuclearOptionRoot)\BepInEx\plugins" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(OutputPath)NoModBar.pdb" DestinationFolder="$(NuclearOptionRoot)\BepInEx\plugins" Condition="Exists('$(OutputPath)NoModBar.pdb')" SkipUnchangedFiles="true" />
+    <Message Text="Deployed NoModBar.dll to $(NuclearOptionRoot)\BepInEx\plugins" Importance="high" />
+  </Target>
+
+  <Target Name="CreateDistZip" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <DistBase>$(OutputPath)dist</DistBase>
+      <DistPluginsDir>$(DistBase)\BepInEx\plugins</DistPluginsDir>
+      <DistZip>$(OutputPath)nomodbar-$(Version).zip</DistZip>
+    </PropertyGroup>
+    <RemoveDir Directories="$(DistBase)" />
+    <MakeDir Directories="$(DistPluginsDir)" />
+    <Copy SourceFiles="$(OutputPath)NoModBar.dll" DestinationFolder="$(DistPluginsDir)" />
+    <ZipDirectory SourceDirectory="$(DistBase)" DestinationFile="$(DistZip)" Overwrite="true" />
+    <RemoveDir Directories="$(DistBase)" />
+    <Message Text="Created distribution ZIP: $(DistZip)" Importance="high" />
+  </Target>
+
+</Project>
