@@ -54,10 +54,11 @@
     </Reference>
   </ItemGroup>
 
-  <Target Name="DeployToPlugins" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' And '$(NuclearOptionRoot)' != ''">
-    <Copy SourceFiles="$(OutputPath)NoModBar.dll" DestinationFolder="$(NuclearOptionRoot)\BepInEx\plugins" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(OutputPath)NoModBar.pdb" DestinationFolder="$(NuclearOptionRoot)\BepInEx\plugins" Condition="Exists('$(OutputPath)NoModBar.pdb')" SkipUnchangedFiles="true" />
-    <Message Text="Deployed NoModBar.dll to $(NuclearOptionRoot)\BepInEx\plugins" Importance="high" />
+  <!-- Deploy NoModBar.dll (+ PDB) to BepInEx/scripts/ for ScriptEngine hot reload (Debug only) -->
+  <Target Name="DeployToScripts" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' And '$(NuclearOptionRoot)' != ''">
+    <Copy SourceFiles="$(OutputPath)NoModBar.dll" DestinationFolder="$(NuclearOptionRoot)\BepInEx\scripts" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(OutputPath)NoModBar.pdb" DestinationFolder="$(NuclearOptionRoot)\BepInEx\scripts" Condition="Exists('$(OutputPath)NoModBar.pdb')" SkipUnchangedFiles="true" />
+    <Message Text="Deployed NoModBar.dll to $(NuclearOptionRoot)\BepInEx\scripts" Importance="high" />
   </Target>
 
   <Target Name="CreateDistZip" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
