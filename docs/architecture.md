@@ -2,36 +2,47 @@
 
 ## Overview
 
-`NoModBar.dll` is a standalone BepInEx 5 plugin. It renders a ScreenSpaceOverlay
-uGUI bar (sortingOrder 1000) in the top-left corner and toggles consumer-mod
-panels on click. Consumer mods integrate through a reflection bridge and never
-reference the bar assembly at compile time.
+The bar ships as **two assemblies** so it is both hot-reloadable and reliable.
+
+- `NoModBar.Core.dll` (in `BepInEx/plugins/`, loaded once by the Chainloader) owns
+  the **static registry** and the **registration API**. Because it is never
+  hot-reloaded, its state survives every ScriptEngine reload of the mods and the
+  bar UI.
+- `NoModBar.dll` (in `BepInEx/scripts/`, loaded by ScriptEngine) is the **bar UI
+  plugin**: `Plugin` (config + entry), `ModBarController` (frame loop), and
+  `ModBarCanvas` (the uGUI strip). It reads from the stable core registry, so a
+  hot reload of the UI immediately re-renders whatever is registered.
+
+Consumer mods integrate through a reflection bridge and never reference either
+bar assembly at compile time.
 
 ## Components
 
-- `Plugin` — BepInEx entry; binds `Bar` config; spawns `ModBarController`.
-- `ModBarApi` (public) — static, lock-protected registry keyed by mod `Id`.
-  `Register(object)` reads the frozen contract properties via reflection, so the
-  argument can be an anonymous object from any consumer assembly. A `_version`
-  counter is bumped on every mutation.
-- `ModBarController` — MonoBehaviour; every `Update()`:
+- `NoModBar.Core.ModBarApi` (public) — lock-protected static registry keyed by mod
+  `Id`. `Register(object)` reads the frozen contract properties via reflection, so
+  the argument can be an anonymous object from any consumer assembly. A `_version`
+  counter is bumped on every mutation. Logging is wired through `LogInfo` /
+  `LogWarning` delegates set by the plugin.
+- `NoModBar.Plugin` — BepInEx entry; binds `Bar` config; sets core logging;
+  spawns `ModBarController`.
+- `NoModBar.ModBarController` — MonoBehaviour; every `Update()`:
   1. Gates bar visibility on `RequireInGame` and `GameManager.GetLocalAircraft`.
   2. Applies live config offsets.
   3. Rebuilds buttons when `ModBarApi.Version` changes.
   4. Repaints button active states from each entry's `IsVisible`.
-- `ModBarCanvas` — builds the bar strip (collapsible via a `<<`/`>>` button),
-  one text-labeled button per entry, and a hover tooltip. Buttons are the only
-  raycast targets, so the bar does not block clicks elsewhere.
+- `NoModBar.ModBarCanvas` — builds the bar strip (collapsible via a `<<`/`>>`
+  button), one text-labeled button per entry, and a hover tooltip. Buttons are the
+  only raycast targets, so the bar does not block clicks elsewhere.
 
 ## Data flow
 
 ```
-consumer mod Start() --reflection--> ModBarApi.Register(entry)
+consumer mod Start() --reflection--> NoModBar.Core.ModBarApi.Register(entry)
                                           |
                                           v
-                          static registry (thread-safe dict, version++)
+                    stable static registry (thread-safe dict, version++)
                                           |
-ModBarController.Update() <--snapshot--  v
+NoModBar.ModBarController.Update() <--snapshot-- v
         | rebuild when version changed
         v
    ModBarCanvas buttons --click--> entry.Toggle()
@@ -42,19 +53,20 @@ ModBarController.Update() <--snapshot--  v
 
 ## Deployment
 
-- Debug builds copy `NoModBar.dll` to `BepInEx/scripts/`; `deploy.ps1` removes any
-  stale `BepInEx/plugins/` copy so ScriptEngine is the single loader (F6 hot reload).
-- Release builds produce a dist ZIP that mirrors the standard install layout
-  (`BepInEx/plugins/NoModBar.dll`) for end users without ScriptEngine.
-- Assembly simple name `NoModBar` resolves for `Type.GetType` from any consumer mod
-  once it is loaded by ScriptEngine; `NoModBar.dll` sorts first alphabetically in
-  `scripts/`, so it loads before `NOVor.dll`/`Sitrep.dll`.
+- Debug builds copy `NoModBar.dll` to `BepInEx/scripts/` (ScriptEngine, F6 hot
+  reload) and `NoModBar.Core.dll` to `BepInEx/plugins/` (Chainloader, stable).
+  `deploy.ps1` also removes stale copies so each assembly has a single loader.
+- Release builds produce a dist ZIP with both DLLs under `BepInEx/plugins/` for
+  end users who do not use ScriptEngine.
+- Consumer mods' bridges resolve `NoModBar.Core` by scanning
+  `AppDomain.CurrentDomain.GetAssemblies()`, which works for any load order and
+  across ScriptEngine reloads because the core assembly is stable.
 
 ## Limitations
 
 - The bar only receives pointer input while the OS cursor is unlocked; during
   locked-cursor flight it renders passively. Opening any mod panel unlocks the
   cursor (existing behavior), making the bar clickable.
-- Hot-reloading the bar mod alone orphans existing registrations until the
-  consumer mods re-register (reload them too, or restart the game).
+- Changes to `NoModBar.Core.dll` require a game restart (it is not hot-reloadable
+  by design). The bar UI in `NoModBar.dll` hot-reloads freely.
 - The bar shows even when it has no registered mods (a lone collapse button).

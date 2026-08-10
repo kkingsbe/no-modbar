@@ -6,16 +6,22 @@ and be opened/closed by clicking its button, so you never have to memorize hotke
 
 ## Install
 
-Copy `NoModBar.dll` to `<game>/BepInEx/plugins/`. No other dependencies.
+Copy `NoModBar.dll` and `NoModBar.Core.dll` to `<game>/BepInEx/plugins/`. No other
+dependencies.
 
 ## Build (dev)
 
-Development follows the ScriptEngine hot-reload workflow (same as NO-VOR):
+The bar ships as two assemblies:
+
+- `NoModBar.Core.dll` — the stable registry + registration API. Lives in
+  `BepInEx/plugins/` (Chainloader), so it is loaded once and survives hot reloads.
+- `NoModBar.dll` — the bar UI plugin. Lives in `BepInEx/scripts/` (ScriptEngine),
+  so the UI is hot-reloadable with F6 / the file watcher.
 
 ```
-deploy.ps1                # dotnet build -c Debug + copy to BepInEx/scripts, drop stale plugins/ copy
-dotnet build -c Debug     # just builds + deploys to BepInEx/scripts
-dotnet build -c Release   # produces bin\Release\nomodbar-1.0.0.zip
+deploy.ps1                # builds + deploys both DLLs to the right places
+dotnet build NoModBar.csproj -c Debug   # just builds + deploys
+dotnet build -c Release   # produces bin\Release\nomodbar-1.0.0.zip (both DLLs in plugins/)
 ```
 
 Game path comes from `$(NuclearOptionRoot)` (see `Local.props.example`).
@@ -28,10 +34,12 @@ Game path comes from `$(NuclearOptionRoot)` (see `Local.props.example`).
 
 ## Registering a mod (for mod authors)
 
-Do NOT add a compile-time reference to `NoModBar.dll`. Copy the reflection bridge
-below into your project and call `Register` once (e.g. in `Start`) and `Unregister`
-in `OnDestroy`. If the bar mod is not installed, the calls no-op and your mod is
-unaffected.
+Do NOT add a compile-time reference to `NoModBar.Core.dll`. Copy the reflection
+bridge below into your project and call `Register` once (e.g. in `Start`) and
+`Unregister` in `OnDestroy`. If the bar mod is not installed, the calls no-op and
+your mod is unaffected. The bridge locates the stable core assembly by scanning
+`AppDomain.CurrentDomain.GetAssemblies()` for `NoModBar.Core`, so it works
+regardless of load order and ScriptEngine hot reloads.
 
 ```csharp
 using System;
@@ -44,20 +52,10 @@ namespace YourMod.Integrations
         private static Type _api;
         private static MethodInfo _register;
         private static MethodInfo _unregister;
-        private static bool _resolved;
-
-        private static void Resolve()
-        {
-            _resolved = true;
-            _api = Type.GetType("NoModBar.ModBarApi, NoModBar");
-            if (_api == null) return;
-            _register = _api.GetMethod("Register", new[] { typeof(object) });
-            _unregister = _api.GetMethod("Unregister", new[] { typeof(string) });
-        }
 
         public static bool Register(string id, string name, string tooltip, Func<bool> isVisible, Action toggle)
         {
-            if (!_resolved) Resolve();
+            Resolve();
             if (_register == null) return false;
             try
             {
@@ -69,10 +67,36 @@ namespace YourMod.Integrations
 
         public static bool Unregister(string id)
         {
-            if (!_resolved) Resolve();
+            Resolve();
             if (_unregister == null) return false;
             try { return (bool)_unregister.Invoke(null, new object[] { id }); }
             catch { return false; }
+        }
+
+        private static void Resolve()
+        {
+            if (_api != null) return;
+            var asm = FindApiAssembly();
+            if (asm == null) return;
+            _api = asm.GetType("NoModBar.Core.ModBarApi");
+            if (_api == null) return;
+            _register = _api.GetMethod("Register", new[] { typeof(object) });
+            _unregister = _api.GetMethod("Unregister", new[] { typeof(string) });
+        }
+
+        private static Assembly FindApiAssembly()
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            for (int i = 0; i < assemblies.Length; i++)
+            {
+                try
+                {
+                    if (assemblies[i].GetName().Name == "NoModBar.Core")
+                        return assemblies[i];
+                }
+                catch { }
+            }
+            return null;
         }
     }
 }
