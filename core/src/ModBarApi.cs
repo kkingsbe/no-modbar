@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using BepInEx.Logging;
 
-namespace NoModBar
+namespace NoModBar.Core
 {
     public static class ModBarApi
     {
-        internal static ManualLogSource Log;
+        public static Action<string> LogInfo;
+        public static Action<string> LogWarning;
 
         private static readonly object Sync = new object();
         private static readonly Dictionary<string, ModBarEntry> Entries = new Dictionary<string, ModBarEntry>();
@@ -23,7 +23,7 @@ namespace NoModBar
             Action toggle = GetProp<Action>(entry, "Toggle");
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(name) || toggle == null)
             {
-                Log?.LogWarning($"ModBar: rejected registration id='{id}' name='{name}' toggle={(toggle != null)}");
+                LogWarning?.Invoke($"ModBar: rejected registration id='{id}' name='{name}' toggle={(toggle != null)}");
                 return false;
             }
 
@@ -39,7 +39,7 @@ namespace NoModBar
                 };
                 _version++;
             }
-            Log?.LogInfo($"ModBar: registered '{id}' ({name}), total {Count()}");
+            LogInfo?.Invoke($"ModBar: registered '{id}' ({name}), total {Count()}");
             return true;
         }
 
@@ -51,13 +51,8 @@ namespace NoModBar
                 if (!Entries.Remove(id)) return false;
                 _version++;
             }
-            Log?.LogInfo($"ModBar: unregistered '{id}', total {Count()}");
+            LogInfo?.Invoke($"ModBar: unregistered '{id}', total {Count()}");
             return true;
-        }
-
-        private static int Count()
-        {
-            lock (Sync) return Entries.Count;
         }
 
         public static bool IsRegistered(string id)
@@ -74,14 +69,19 @@ namespace NoModBar
             }
         }
 
-        internal static int Version
+        public static int Version
         {
             get { lock (Sync) return _version; }
         }
 
-        internal static List<ModBarEntry> Snapshot()
+        public static List<ModBarEntry> Snapshot()
         {
             lock (Sync) return new List<ModBarEntry>(Entries.Values);
+        }
+
+        private static int Count()
+        {
+            lock (Sync) return Entries.Count;
         }
 
         private static T GetProp<T>(object o, string name)

@@ -3,16 +3,22 @@ param(
 )
 $ErrorActionPreference = "Stop"
 
-dotnet build -c Debug
+dotnet build NoModBar.csproj -c Debug
 if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
 $scriptsDir = Join-Path $Root "BepInEx\scripts"
-$pluginFile = Join-Path $Root "BepInEx\plugins\NoModBar.dll"
+$pluginsDir = Join-Path $Root "BepInEx\plugins"
+$outDir = Join-Path $PSScriptRoot "bin\Debug"
 
-Remove-Item -LiteralPath $pluginFile -Force -ErrorAction SilentlyContinue
+Copy-Item -LiteralPath (Join-Path $outDir "NoModBar.dll") -Destination $scriptsDir -Force
+Copy-Item -LiteralPath (Join-Path $outDir "NoModBar.pdb") -Destination $scriptsDir -Force
+Copy-Item -LiteralPath (Join-Path $outDir "NoModBar.Core.dll") -Destination $pluginsDir -Force
+
+Remove-Item -LiteralPath (Join-Path $scriptsDir "NoModBar.Core.dll") -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath (Join-Path $pluginsDir "NoModBar.dll") -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
-Write-Host "Deployed to: $scriptsDir\NoModBar.dll"
-Write-Host "Removed old plugins/ copy so ScriptEngine is the single loader."
+Write-Host "Deployed NoModBar.dll -> scripts/ (ScriptEngine hot reload)"
+Write-Host "Deployed NoModBar.Core.dll -> plugins/ (stable registry, never reloaded)"
 Write-Host ""
-Write-Host "Hot reload: edit code, run this script, then press Insert in-game (ScriptEngine watcher also auto-reloads after ~3s)."
+Write-Host "Hot reload the bar: edit code, run this script, then press Insert in-game (ScriptEngine watcher also auto-reloads after ~3s)."

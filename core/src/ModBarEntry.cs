@@ -1,8 +1,8 @@
 using System;
 
-namespace NoModBar
+namespace NoModBar.Core
 {
-    internal sealed class ModBarEntry
+    public sealed class ModBarEntry
     {
         public string Id;
         public string Name;

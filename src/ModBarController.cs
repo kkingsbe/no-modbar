@@ -1,4 +1,5 @@
 using UnityEngine;
+using NoModBar.Core;
 
 namespace NoModBar
 {

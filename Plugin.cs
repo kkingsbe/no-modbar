@@ -2,6 +2,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using UnityEngine;
+using NoModBar.Core;
 
 namespace NoModBar
 {
@@ -28,7 +29,8 @@ namespace NoModBar
             }
             Instance = this;
             Log = Logger;
-            ModBarApi.Log = Logger;
+            ModBarApi.LogInfo = msg => Logger.LogInfo(msg);
+            ModBarApi.LogWarning = msg => Logger.LogWarning(msg);
 
             OffsetX = Config.Bind("Bar", "OffsetX", 12f,
                 new ConfigDescription("Horizontal offset of the bar from the top-left corner (screen px).",
