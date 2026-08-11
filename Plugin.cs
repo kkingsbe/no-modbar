@@ -14,8 +14,8 @@ namespace NoModBar
 
         internal static ConfigEntry<float> OffsetX;
         internal static ConfigEntry<float> OffsetY;
-        internal static ConfigEntry<bool> RequireInGame;
         internal static ConfigEntry<float> ButtonSize;
+        internal static ConfigEntry<KeyboardShortcut> FreeCursorKey;
 
         private GameObject _controller;
 
@@ -38,11 +38,14 @@ namespace NoModBar
             OffsetY = Config.Bind("Bar", "OffsetY", 12f,
                 new ConfigDescription("Vertical offset of the bar from the top-left corner (screen px).",
                     new AcceptableValueRange<float>(-500f, 3000f)));
-            RequireInGame = Config.Bind("Bar", "RequireInGame", true,
-                "Only show the bar while flying (local aircraft present).");
             ButtonSize = Config.Bind("Bar", "ButtonSize", 30f,
                 new ConfigDescription("Side length of each mod button in the bar (px).",
                     new AcceptableValueRange<float>(18f, 64f)));
+
+            FreeCursorKey = Config.Bind("Cursor", "FreeCursorKey",
+                new KeyboardShortcut(KeyCode.LeftAlt),
+                "Hold to free the mouse cursor from mouse-look so you can click the bar and mod panels. " +
+                "Rebindable in game via the CFG button on the bar.");
 
             _controller = new GameObject("NoModBarController");
             _controller.AddComponent<ModBarController>();

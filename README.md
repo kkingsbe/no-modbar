@@ -1,8 +1,14 @@
 # NO Mod Bar
 
-A BepInEx 5 mod for Nuclear Option that renders a KSP-style toolbar in the top-left
-corner of the screen while flying. Any mod's uGUI panel can register with the bar
-and be opened/closed by clicking its button, so you never have to memorize hotkeys.
+A BepInEx 5 mod for Nuclear Option that renders a persistent KSP-style toolbar in
+the top-left corner on every game screen. Any mod's uGUI panel can register with
+the bar and be opened/closed by clicking its button, so you never have to memorize
+hotkeys.
+
+Hold **Left Alt** (rebindable) while flying to free the mouse cursor from
+mouse-look, click bar buttons or panels, then release to lock back into the
+cockpit. The bar's **CFG** button opens the mod's own settings panel, where the
+hotkey can be rebound by pressing the new key(s).
 
 ## Install
 
@@ -29,8 +35,9 @@ Game path comes from `$(NuclearOptionRoot)` (see `Local.props.example`).
 ## Config (`BepInEx/config/dev.kilo.modbar.cfg`)
 
 - `Bar > OffsetX` / `OffsetY` — bar position from the top-left corner (px). Live.
-- `Bar > RequireInGame` — only show while a local aircraft is present (default on).
 - `Bar > ButtonSize` — square button side length in px.
+- `Cursor > FreeCursorKey` — hold-to-free-cursor shortcut (default `LeftAlt`).
+  Rebindable in game via the CFG panel.
 
 ## Registering a mod (for mod authors)
 
