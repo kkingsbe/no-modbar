@@ -27,7 +27,7 @@ The bar ships as two assemblies:
 ```
 deploy.ps1                # builds + deploys both DLLs to the right places
 dotnet build NoModBar.csproj -c Debug   # just builds + deploys
-dotnet build -c Release   # produces bin\Release\nomodbar-1.0.0.zip (both DLLs in plugins/)
+dotnet build -c Release   # produces bin\Release\nomodbar-1.0.0.zip (both DLLs flat at the zip root, NOMM-compatible)
 ```
 
 Game path comes from `$(NuclearOptionRoot)` (see `Local.props.example`).

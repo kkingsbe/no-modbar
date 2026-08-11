@@ -67,8 +67,8 @@ NoModBar.ModBarController.Update() <--snapshot-- v
 - Debug builds copy `NoModBar.dll` to `BepInEx/scripts/` (ScriptEngine, F6 hot
   reload) and `NoModBar.Core.dll` to `BepInEx/plugins/` (Chainloader, stable).
   `deploy.ps1` also removes stale copies so each assembly has a single loader.
-- Release builds produce a dist ZIP with both DLLs under `BepInEx/plugins/` for
-  end users who do not use ScriptEngine.
+- Release builds produce a dist ZIP with both DLLs flat at the archive root (a
+  NOMM-compatible layout), for end users who do not use ScriptEngine.
 - Consumer mods' bridges resolve `NoModBar.Core` by scanning
   `AppDomain.CurrentDomain.GetAssemblies()`, which works for any load order and
   across ScriptEngine reloads because the core assembly is stable.

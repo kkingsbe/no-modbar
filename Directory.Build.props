@@ -2,5 +2,12 @@
   <PropertyGroup>
     <NuclearOptionRoot Condition="'$(NuclearOptionRoot)' == ''">D:\SteamLibrary\steamapps\common\Nuclear Option</NuclearOptionRoot>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Enables net472 compilation on Linux CI (no .NET Framework targeting pack there) -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies"
+                      Version="1.0.3"
+                      PrivateAssets="all"
+                      Condition="'$(OS)' == 'Unix'" />
+  </ItemGroup>
   <Import Project="$(MSBuildProjectDirectory)\Local.props" Condition="Exists('$(MSBuildProjectDirectory)\Local.props')" />
 </Project>

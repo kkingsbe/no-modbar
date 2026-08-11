@@ -76,16 +76,19 @@
     <Message Text="Deployed NoModBar.Core.dll to $(NuclearOptionRoot)\BepInEx\plugins" Importance="high" />
   </Target>
 
+  <!-- Create NOMM-compatible distribution ZIP: plugin files flat at the archive root -->
   <Target Name="CreateDistZip" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
       <DistBase>$(OutputPath)dist</DistBase>
-      <DistPluginsDir>$(DistBase)\BepInEx\plugins</DistPluginsDir>
       <DistZip>$(OutputPath)nomodbar-$(Version).zip</DistZip>
     </PropertyGroup>
     <RemoveDir Directories="$(DistBase)" />
-    <MakeDir Directories="$(DistPluginsDir)" />
-    <Copy SourceFiles="$(OutputPath)NoModBar.dll" DestinationFolder="$(DistPluginsDir)" />
-    <Copy SourceFiles="$(OutputPath)NoModBar.Core.dll" DestinationFolder="$(DistPluginsDir)" />
+    <MakeDir Directories="$(DistBase)" />
+    <ItemGroup>
+      <_DistDlls Include="$(OutputPath)\NoModBar.dll" />
+      <_DistDlls Include="$(OutputPath)\NoModBar.Core.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_DistDlls)" DestinationFolder="$(DistBase)" />
     <ZipDirectory SourceDirectory="$(DistBase)" DestinationFile="$(DistZip)" Overwrite="true" />
     <RemoveDir Directories="$(DistBase)" />
     <Message Text="Created distribution ZIP: $(DistZip)" Importance="high" />
