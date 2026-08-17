@@ -70,7 +70,7 @@
   </Target>
 
   <!-- Deploy NoModBar.Core.dll (+ PDB) to BepInEx/plugins/ for a stable, never-reloaded registry (Debug only) -->
-  <Target Name="DeployCoreToPlugins" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' And '$(NuclearOptionRoot)' != ''">
+  <Target Name="DeployCoreToPlugins" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug' And '$(NuclearOptionRoot)' != '' And '$(DeployCore)' != 'false'">
     <Copy SourceFiles="$(OutputPath)NoModBar.Core.dll" DestinationFolder="$(NuclearOptionRoot)\BepInEx\plugins" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(OutputPath)NoModBar.Core.pdb" DestinationFolder="$(NuclearOptionRoot)\BepInEx\plugins" Condition="Exists('$(OutputPath)NoModBar.Core.pdb')" SkipUnchangedFiles="true" />
     <Message Text="Deployed NoModBar.Core.dll to $(NuclearOptionRoot)\BepInEx\plugins" Importance="high" />

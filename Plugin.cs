@@ -32,11 +32,11 @@ namespace NoModBar
             ModBarApi.LogInfo = msg => Logger.LogInfo(msg);
             ModBarApi.LogWarning = msg => Logger.LogWarning(msg);
 
-            OffsetX = Config.Bind("Bar", "OffsetX", 12f,
-                new ConfigDescription("Horizontal offset of the bar from the top-left corner (screen px).",
-                    new AcceptableValueRange<float>(-500f, 3000f)));
+            OffsetX = Config.Bind("Bar", "CenterOffsetX", 0f,
+                new ConfigDescription("Horizontal offset of the bar from the top-center of the screen (px).",
+                    new AcceptableValueRange<float>(-3000f, 3000f)));
             OffsetY = Config.Bind("Bar", "OffsetY", 12f,
-                new ConfigDescription("Vertical offset of the bar from the top-left corner (screen px).",
+                new ConfigDescription("Vertical offset of the bar from the top edge of the screen (px).",
                     new AcceptableValueRange<float>(-500f, 3000f)));
             ButtonSize = Config.Bind("Bar", "ButtonSize", 30f,
                 new ConfigDescription("Side length of each mod button in the bar (px).",

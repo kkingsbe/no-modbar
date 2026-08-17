@@ -17,6 +17,7 @@ namespace NoModBar
         private const float Spacing = 6f;
         private const float TilePadH = 6f;
         private const float TooltipGap = 6f;
+        private const float DividerWidth = 1f;
 
         private const float CollapseAnimTime = 0.12f;
         private const float IdleDelay = 4f;
@@ -30,6 +31,7 @@ namespace NoModBar
         private HorizontalLayoutGroup _stripLayout;
         private CanvasGroup _stripGroup;
         private GameObject _divider;
+        private LayoutElement _dividerLe;
         private GameObject _content;
         private LayoutElement _contentLe;
         private CanvasGroup _contentGroup;
@@ -62,6 +64,7 @@ namespace NoModBar
         private float ButtonSize => Plugin.ButtonSize.Value;
         private float TileWidth => ButtonSize + 2f * TilePadH;
         private float BarHeight => ButtonSize + 2f * PadV;
+        private float CollapsedWidth => ButtonSize + 2f * PadH;
 
         public bool Visible => _visible;
 
@@ -93,18 +96,18 @@ namespace NoModBar
             BuildStrip(_canvasRt);
             BuildTooltip(_canvasRt);
 
-            SetVisible(false);
+            SetVisible(true);
         }
 
         private void BuildStrip(RectTransform canvasRt)
         {
             var go = new GameObject("Bar", typeof(RectTransform), typeof(Image), typeof(CanvasGroup),
-                typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter), typeof(EventTrigger));
+                typeof(HorizontalLayoutGroup), typeof(EventTrigger));
             go.transform.SetParent(canvasRt, false);
             _stripRt = go.GetComponent<RectTransform>();
-            _stripRt.anchorMin = new Vector2(0, 1);
-            _stripRt.anchorMax = new Vector2(0, 1);
-            _stripRt.pivot = new Vector2(0, 1);
+            _stripRt.anchorMin = new Vector2(0.5f, 1);
+            _stripRt.anchorMax = new Vector2(0.5f, 1);
+            _stripRt.pivot = new Vector2(0.5f, 1);
             _stripRt.sizeDelta = new Vector2(120, BarHeight);
 
             var bg = go.GetComponent<Image>();
@@ -124,10 +127,6 @@ namespace NoModBar
             _stripLayout.childControlHeight = true;
             _stripLayout.childForceExpandWidth = false;
             _stripLayout.childForceExpandHeight = true;
-
-            var fitter = go.GetComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
 
             // Pointer enter/exit bubble up from child buttons, so one trigger on the
             // strip tracks hover for the whole bar (idle fade). Drag events only fire
@@ -188,9 +187,9 @@ namespace NoModBar
         {
             _divider = new GameObject("Divider", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
             _divider.transform.SetParent(_stripLayout.transform, false);
-            var le = _divider.GetComponent<LayoutElement>();
-            le.preferredWidth = 1f;
-            le.minWidth = 1f;
+            _dividerLe = _divider.GetComponent<LayoutElement>();
+            _dividerLe.preferredWidth = DividerWidth;
+            _dividerLe.minWidth = DividerWidth;
             var img = _divider.GetComponent<Image>();
             img.color = UiColors.BorderSubtle;
             img.raycastTarget = false;
@@ -329,10 +328,22 @@ namespace NoModBar
             bool show = t > 0.001f;
             if (_content != null && _content.activeSelf != show) _content.SetActive(show);
             if (_divider != null && _divider.activeSelf != show) _divider.SetActive(show);
+            float contentWidth = ContentNaturalWidth() * t;
             if (_contentLe != null)
             {
-                _contentLe.preferredWidth = ContentNaturalWidth() * t;
+                _contentLe.preferredWidth = contentWidth;
                 _contentLe.minWidth = 0f;
+            }
+            if (_dividerLe != null)
+            {
+                _dividerLe.preferredWidth = DividerWidth * t;
+                _dividerLe.minWidth = DividerWidth * t;
+            }
+            if (_stripLayout != null) _stripLayout.spacing = Spacing * t;
+            if (_stripRt != null)
+            {
+                float expandedPart = contentWidth + (2f * Spacing + DividerWidth) * t;
+                _stripRt.sizeDelta = new Vector2(CollapsedWidth + expandedPart, BarHeight);
             }
             if (_contentGroup != null) _contentGroup.alpha = t;
         }
@@ -485,7 +496,7 @@ namespace NoModBar
         private Vector2 StripTopLeftLocal()
         {
             Vector2 ap = _stripRt.anchoredPosition;
-            return new Vector2(-_canvasRt.rect.width / 2f + ap.x, _canvasRt.rect.height / 2f + ap.y);
+            return new Vector2(ap.x - _stripRt.rect.width / 2f, _canvasRt.rect.height / 2f + ap.y);
         }
 
         private void BeginDrag(PointerEventData d)
@@ -525,7 +536,7 @@ namespace NoModBar
             if (y < minY + EdgeSnapPx) y = minY;
 
             // Config stays the single source of truth; ApplyOffsets picks this up.
-            Plugin.OffsetX.Value = x + w / 2f;
+            Plugin.OffsetX.Value = x + sw / 2f;
             Plugin.OffsetY.Value = h / 2f - y;
         }
 

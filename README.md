@@ -1,7 +1,7 @@
 # NO Mod Bar
 
-A BepInEx 5 mod for Nuclear Option that renders a persistent KSP-style toolbar in
-the top-left corner on every game screen. Any mod's uGUI panel can register with
+A BepInEx 5 mod for Nuclear Option that renders a persistent KSP-style toolbar at
+the top-center of every game screen. Any mod's uGUI panel can register with
 the bar and be opened/closed by clicking its button, so you never have to memorize
 hotkeys.
 
@@ -34,7 +34,8 @@ Game path comes from `$(NuclearOptionRoot)` (see `Local.props.example`).
 
 ## Config (`BepInEx/config/dev.kilo.modbar.cfg`)
 
-- `Bar > OffsetX` / `OffsetY` — bar position from the top-left corner (px). Live.
+- `Bar > CenterOffsetX` — horizontal offset from the screen's top-center (px). Live.
+- `Bar > OffsetY` — vertical offset from the top edge (px). Live.
 - `Bar > ButtonSize` — square button side length in px.
 - `Cursor > FreeCursorKey` — hold-to-free-cursor shortcut (default `LeftAlt`).
   Rebindable in game via the CFG panel.

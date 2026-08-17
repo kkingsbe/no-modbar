@@ -31,8 +31,9 @@ bar assembly at compile time.
   3. Rebuilds buttons when `ModBarApi.Version` changes.
   4. Repaints button active states from each entry's `IsVisible`.
 - `NoModBar.ModBarCanvas` — builds the bar strip (collapsible via a `<<`/`>>`
-  button), one text-labeled button per entry, and a hover tooltip. Buttons are the
-  only raycast targets, so the bar does not block clicks elsewhere.
+  button) anchored at the screen's top-center, one text-labeled button per entry,
+  and a hover tooltip. Buttons are the only raycast targets, so the bar does not
+  block clicks elsewhere.
 - `NoModBar.CursorOverride` — owns the mod's private bits in the game's static
   `CursorManager` flag set (`1 << 20` free-cursor, `1 << 21` mod UI; the game uses
   bits 0–8). Set/clear goes through `CursorManager.SetFlag` + `Refresh()`, so the

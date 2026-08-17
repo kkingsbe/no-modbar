@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Events;
 using UnityEngine.UI;
 using BepInEx.Configuration;
 
@@ -11,6 +13,8 @@ namespace NoModBar
     /// The mod's own settings panel, registered on the bar as "CFG".
     /// Currently hosts a single option: the free-cursor hotkey (click to rebind).
     /// While open it holds the mod-ui cursor flag so the panel stays clickable.
+    /// Visuals match the bar: 9-slice framed chrome, explicit hover/press button
+    /// states driven from the palette via EventTrigger (no ColorBlock tints).
     /// </summary>
     internal class ModSettingsPanel
     {
@@ -27,9 +31,15 @@ namespace NoModBar
             KeyCode.LeftAlt, KeyCode.RightAlt
         };
 
+        private class BtnState { public bool Hover; public bool Press; public bool Active; }
+
+        private readonly Dictionary<Button, BtnState> _states = new Dictionary<Button, BtnState>();
+
         private GameObject _root;
         private GameObject _panel;
         private TextMeshProUGUI _hotkeyValue;
+        private Image _hotkeyBg;
+        private BtnState _hotkeyState;
         private bool _open;
         private bool _capturing;
 
@@ -60,7 +70,7 @@ namespace NoModBar
 
         private void BuildPanel(RectTransform canvasRt)
         {
-            _panel = new GameObject("SettingsPanel", typeof(RectTransform), typeof(RawImage));
+            _panel = new GameObject("SettingsPanel", typeof(RectTransform), typeof(Image));
             _panel.transform.SetParent(canvasRt, false);
             var rt = _panel.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0.5f, 0.5f);
@@ -69,8 +79,12 @@ namespace NoModBar
             rt.sizeDelta = new Vector2(PanelWidth, PanelHeight);
             rt.anchoredPosition = Vector2.zero;
 
-            var bg = _panel.GetComponent<RawImage>();
-            bg.texture = TextureFactory.CreatePanelBackground(64, 64, UiColors.BgPanel, UiColors.BorderPanel, 2f, true);
+            // 9-slice frame like the bar strip — border stays 1 canvas unit thick
+            // at any panel size instead of stretching inward like a RawImage.
+            var bg = _panel.GetComponent<Image>();
+            bg.sprite = TextureFactory.CreateFramedSprite(UiColors.BgPanel, UiColors.BorderPanel, 1);
+            bg.type = Image.Type.Sliced;
+            bg.pixelsPerUnitMultiplier = TextureFactory.FramedPpuMultiplier;
             bg.color = Color.white;
             bg.raycastTarget = true; // block clicks passing through the panel
 
@@ -79,23 +93,27 @@ namespace NoModBar
                 new Vector2(Pad, -Pad), new Vector2(0, 1), 14, FontStyles.Bold, UiColors.HudGreen);
 
             // Close button
-            var close = MakeButton(_panel.transform, "Close", "X", new Vector2(26, 26), () => SetOpen(false));
+            var close = MakeButton(_panel.transform, "Close", "X", new Vector2(26, 26), null);
             var closeRt = close.GetComponent<RectTransform>();
             closeRt.anchorMin = new Vector2(1, 1);
             closeRt.anchorMax = new Vector2(1, 1);
             closeRt.pivot = new Vector2(1, 1);
             closeRt.anchoredPosition = new Vector2(-10, -10);
+            close.GetComponent<Button>().onClick.AddListener(() => SetOpen(false));
 
             // Hotkey row
             MakeLabel(_panel.transform, "HotkeyLabel", "Free-cursor hotkey",
                 new Vector2(Pad, -70), new Vector2(0, 1), 13, FontStyles.Normal, UiColors.TextPrimary);
 
-            var rebind = MakeButton(_panel.transform, "HotkeyRebind", "", new Vector2(190, 32), StartCapture);
+            var rebind = MakeButton(_panel.transform, "HotkeyRebind", "", new Vector2(190, 32), null);
+            _hotkeyState = _states[rebind];
             var rebindRt = rebind.GetComponent<RectTransform>();
             rebindRt.anchorMin = new Vector2(1, 1);
             rebindRt.anchorMax = new Vector2(1, 1);
             rebindRt.pivot = new Vector2(1, 1);
             rebindRt.anchoredPosition = new Vector2(-Pad, -62);
+            _hotkeyBg = rebind.GetComponent<Image>();
+            rebind.GetComponent<Button>().onClick.AddListener(StartCapture);
             _hotkeyValue = rebind.GetComponentInChildren<TextMeshProUGUI>();
             _hotkeyValue.fontStyle = FontStyles.Normal;
             RefreshHotkeyLabel();
@@ -131,9 +149,14 @@ namespace NoModBar
             return tmp;
         }
 
-        private Button MakeButton(Transform parent, string name, string text, Vector2 size, UnityEngine.Events.UnityAction onClick)
+        /// <summary>
+        /// Bar-style button: flat chrome base with explicit hover/press states from
+        /// the palette, driven via EventTrigger (Transition.None — no tinting).
+        /// Returns the Button; the BtnState component drives UpdateButtonVisual.
+        /// </summary>
+        private Button MakeButton(Transform parent, string name, string text, Vector2 size, UnityAction onClick)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(EventTrigger));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = new Vector2(0, 1);
@@ -143,18 +166,19 @@ namespace NoModBar
             rt.sizeDelta = size;
 
             var img = go.GetComponent<Image>();
-            img.color = Color.white; // exact palette colors come from the ColorBlock
+            img.color = UiColors.BgPanelRaised;
             img.raycastTarget = true;
             var btn = go.GetComponent<Button>();
-            btn.targetGraphic = img;
-            var cb = btn.colors;
-            cb.normalColor = UiColors.BgPanelRaised;
-            cb.highlightedColor = UiColors.BgHover;
-            cb.pressedColor = UiColors.BgPressed;
-            cb.selectedColor = UiColors.BgPanelRaised;
-            cb.fadeDuration = 0.06f;
-            btn.colors = cb;
-            btn.onClick.AddListener(onClick);
+            btn.transition = Selectable.Transition.None;
+            if (onClick != null) btn.onClick.AddListener(onClick);
+
+            var trig = go.GetComponent<EventTrigger>();
+            var state = new BtnState();
+            _states[btn] = state;
+            AddTrigger(trig, EventTriggerType.PointerEnter, d => { state.Hover = true; UpdateButtonVisual(btn, state); });
+            AddTrigger(trig, EventTriggerType.PointerExit, d => { state.Hover = false; state.Press = false; UpdateButtonVisual(btn, state); });
+            AddTrigger(trig, EventTriggerType.PointerDown, d => { state.Press = true; UpdateButtonVisual(btn, state); });
+            AddTrigger(trig, EventTriggerType.PointerUp, d => { state.Press = false; UpdateButtonVisual(btn, state); });
 
             var tmpGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             tmpGo.transform.SetParent(go.transform, false);
@@ -174,6 +198,27 @@ namespace NoModBar
             tmp.overflowMode = TextOverflowModes.Ellipsis;
             tmp.raycastTarget = false;
             return btn;
+        }
+
+        /// <summary>Bar-style state painting: amber for active (capturing), neutral otherwise.</summary>
+        private static void UpdateButtonVisual(Button btn, BtnState state)
+        {
+            var img = btn.GetComponent<Image>();
+            var label = btn.GetComponentInChildren<TextMeshProUGUI>();
+            if (state.Active)
+            {
+                img.color = state.Press ? UiColors.AmberBgPressed
+                    : state.Hover ? UiColors.AmberBgHover
+                    : UiColors.AmberBg;
+                if (label != null) label.color = UiColors.Amber;
+            }
+            else
+            {
+                img.color = state.Press ? UiColors.BgPressed
+                    : state.Hover ? UiColors.BgHover
+                    : UiColors.BgPanelRaised;
+                if (label != null) label.color = UiColors.TextPrimary;
+            }
         }
 
         public void Toggle() => SetOpen(!_open);
@@ -204,6 +249,8 @@ namespace NoModBar
         private void StartCapture()
         {
             _capturing = true;
+            if (_hotkeyState != null) _hotkeyState.Active = true;
+            if (_hotkeyBg != null) UpdateButtonVisual(_hotkeyBg.GetComponent<Button>(), _hotkeyState);
             if (_hotkeyValue != null)
             {
                 _hotkeyValue.text = "Press keys…";
@@ -214,6 +261,8 @@ namespace NoModBar
         private void StopCapture()
         {
             _capturing = false;
+            if (_hotkeyState != null) _hotkeyState.Active = false;
+            if (_hotkeyBg != null) UpdateButtonVisual(_hotkeyBg.GetComponent<Button>(), _hotkeyState);
             RefreshHotkeyLabel();
         }
 
@@ -258,6 +307,13 @@ namespace NoModBar
         {
             CursorOverride.SetModUi(false);
             if (_root != null) UnityEngine.Object.Destroy(_root);
+        }
+
+        private static void AddTrigger(EventTrigger trigger, EventTriggerType type, UnityAction<BaseEventData> callback)
+        {
+            var entry = new EventTrigger.Entry { eventID = type };
+            entry.callback.AddListener(callback);
+            trigger.triggers.Add(entry);
         }
     }
 }
